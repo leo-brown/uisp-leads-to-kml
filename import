@@ -1,0 +1,100 @@
+#!/bin/php
+<?php
+
+// load file
+$usage = "Usage: {$argv[0]} <csv> <kml>\n";
+if(!$csv_file = @$argv[1]) die($usage);
+if(!$kml_file = @$argv[2]) die($usage);
+
+// convert CSV to KML
+$leads = loadCSV($csv_file);
+$kml = generateKML($leads);
+
+// save KML
+file_put_contents($kml_file, $kml);
+
+/**
+  * Generate KML file from leads array
+  *
+  * Array $leads Array of Leads from UISP Export
+  *
+  */
+function generateKML($leads){
+
+	$kml = array();
+	$kml[]= '<?xml version="1.0" encoding="UTF-8"?>';
+	$kml[]= '<kml xmlns="http://www.opengis.net/kml/2.2">';
+	$kml[]= "<Document>";
+
+	$kml[]= "<name>UISP Leads Map</name>";
+
+	$kml[]= "<Style id=\"lead\">";
+	$kml[]= "<LineStyle>";
+	$kml[]= "<color>ff000000</color>";
+	$kml[]= "<width>2</width>";
+	$kml[]= "</LineStyle>";
+	$kml[]= "</Style>";
+
+	$kml[]= "<Folder>";
+	$kml[]= "<name>Leads</name>";
+
+	foreach($leads as &$i){
+
+		$lat = preg_replace('/[^0-9\-\.]/', '', $i['Client latitude']);
+		$lon = preg_replace('/[^0-9\-\.]/', '', $i['Client longitude']);
+
+		if(!$i) continue;
+
+		$kml[]= "<Placemark>";
+		$kml[]= "<name>{$i['Name']}</name>";
+		$kml[]= "<styleUrl>#lead</styleUrl>";
+		$kml[]= "<Point>";
+		$kml[]= "<coordinates>{$lon},{$lat}</coordinates>";
+		$kml[]= "</Point>";
+		$kml[]= "";
+		$kml[]= "<ExtendedData>";
+		$kml[]= "<Data name=\"Email\">";
+		$kml[]= "<value>{$i['Emails']}</value>";
+		$kml[]= "</Data>";
+		$kml[]= "<Data name=\"Address\">";
+		$kml[]= "<value>{$i['Address']}</value>";
+		$kml[]= "</Data>";
+		$kml[]= "<Data name=\"Postcode\">";
+		$kml[]= "<value>{$i['ZIP code']}</value>";
+		$kml[]= "</Data>";
+		$kml[]= "<Data name=\"Date\">";
+		$kml[]= "<value>{$i['Registration date']}</value>";
+		$kml[]= "</Data>";
+		$kml[]= "<Data name=\"Note\">";
+		$kml[]= "<value>{$i['Note']}</value>";
+		$kml[]= "</Data>";
+		$kml[]= "</ExtendedData>";
+		$kml[]= "";
+		$kml[]= "";
+		$kml[]= "</Placemark>";
+
+	}
+	$kml[]= "</Folder>";
+
+	$kml[]= "</Document>";
+	$kml[]= "</kml>";
+
+	return implode("\n",$kml);
+}
+
+/**
+  * Get rows from CSV File
+  *
+  * @author Leo Brown
+  */
+function loadCsv($filename){
+        $file = fopen($filename,"r");
+        $headers = fgetcsv($file);
+        $users = array();
+        while(! feof($file)){
+		$nl = fgetcsv($file);
+                $users[] = @array_combine($headers, $nl);
+        }
+        fclose($file);
+        return array_filter($users);
+}
